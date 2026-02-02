@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>منصة الأتمتة المباشرة</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-900 text-white p-8">
+
+    <div class="max-w-5xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6 text-blue-400">محرك الأتمتة السحابي 🚀</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-gray-800 p-4 rounded-lg shadow-xl">
+                <h2 class="text-xl mb-4">اكتب سكربت SeleniumBase:</h2>
+                <textarea id="codeEditor" class="w-full h-80 bg-black text-green-400 p-4 font-mono rounded border border-gray-700" placeholder="اكتب كودك هنا..."></textarea>
+                <button onclick="runAutomation()" id="runBtn" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 p-3 rounded font-bold transition">
+                    تشغيل مباشر الآن
+                </button>
+            </div>
+
+            <div class="bg-gray-800 p-4 rounded-lg shadow-xl">
+                <h2 class="text-xl mb-4">البث المباشر (Live View):</h2>
+                <div id="status" class="text-sm text-yellow-400 mb-2">في انتظار بدء المهمة...</div>
+                <div id="streamContainer" class="relative w-full h-80 bg-black rounded flex items-center justify-center overflow-hidden border border-gray-700">
+                    <p id="placeholderText" class="text-gray-500">سيظهر البث هنا عند التشغيل</p>
+                    <iframe id="liveFrame" class="hidden w-full h-full border-none"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // إعدادات Supabase (ستحصل عليها عند إنشاء حساب مجاني)
+        const supabase = supabase.createClient('YOUR_SUPABASE_URL', 'YOUR_SUPABASE_ANON_KEY');
+        const userId = "user_" + Math.random().toString(36).substr(2, 9);
+
+        async function runAutomation() {
+            const code = document.getElementById('codeEditor').value;
+            const btn = document.getElementById('runBtn');
+            const status = document.getElementById('status');
+
+            btn.disabled = true;
+            status.innerText = "⏳ جاري إرسال الطلب إلى المحرك...";
+
+            // 1. إرسال الكود إلى Netlify Function
+            const response = await fetch('/.netlify/functions/run-job', {
+                method: 'POST',
+                body: JSON.stringify({ script_code: code, user_id: userId })
+            });
+
+            if (response.ok) {
+                status.innerText = "🚀 تم بدء المحرك! جاري تحضير البث (قد يستغرق 30 ثانية)...";
+                listenForStream();
+            }
+        }
+
+        function listenForStream() {
+            // 2. الاستماع لقاعدة البيانات: عندما يضع GitHub رابط Ngrok، سنفتحه فوراً
+            supabase
+                .channel('public:jobs')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'jobs', filter: `user_id=eq.${userId}` }, 
+                payload => {
+                    const streamUrl = payload.new.live_url;
+                    document.getElementById('placeholderText').classList.add('hidden');
+                    const iframe = document.getElementById('liveFrame');
+                    iframe.src = streamUrl;
+                    iframe.classList.remove('hidden');
+                    document.getElementById('status').innerText = "🔴 بث مباشر الآن";
+                })
+                .subscribe();
+        }
+    </script>
+</body>
+</html>
