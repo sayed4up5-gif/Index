@@ -2,74 +2,83 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>منصة الأتمتة المباشرة</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automation Cloud Host</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-gray-900 text-white p-8">
+<body class="bg-slate-900 text-white min-h-screen p-4 md:p-10">
+    <div class="max-w-6xl mx-auto">
+        <header class="flex justify-between items-center mb-10">
+            <h1 class="text-2xl font-black text-blue-500">AUTOMATE<span class="text-white text-sm font-light">.LIVE</span></h1>
+            <div id="statusIndicator" class="px-4 py-1 rounded-full bg-slate-800 text-xs">حالة النظام: جاهز</div>
+        </header>
 
-    <div class="max-w-5xl mx-auto">
-        <h1 class="text-3xl font-bold mb-6 text-blue-400">محرك الأتمتة السحابي 🚀</h1>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-gray-800 p-4 rounded-lg shadow-xl">
-                <h2 class="text-xl mb-4">اكتب سكربت SeleniumBase:</h2>
-                <textarea id="codeEditor" class="w-full h-80 bg-black text-green-400 p-4 font-mono rounded border border-gray-700" placeholder="اكتب كودك هنا..."></textarea>
-                <button onclick="runAutomation()" id="runBtn" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 p-3 rounded font-bold transition">
-                    تشغيل مباشر الآن
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="bg-slate-800 p-6 rounded-2xl shadow-2xl border border-slate-700">
+                <h2 class="text-lg font-bold mb-4 flex items-center">
+                    <span class="w-3 h-3 bg-blue-500 rounded-full ml-2"></span> محرر السكربت (Python)
+                </h2>
+                <textarea id="codeEditor" class="w-full h-96 bg-slate-950 text-green-400 p-4 font-mono text-sm rounded-xl border border-slate-700 focus:ring-2 focus:ring-blue-500 outline-none" 
+placeholder="from seleniumbase import Driver
+import time
+
+driver = Driver(browser='chrome', uc=True, headed=True)
+driver.get('https://google.com')
+time.sleep(10)
+driver.quit()"></textarea>
+                <button onclick="startJob()" id="runBtn" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 py-4 rounded-xl font-bold text-lg transition-all transform active:scale-95 shadow-lg shadow-blue-500/20">
+                    تشغيل مباشر الآن 🚀
                 </button>
             </div>
 
-            <div class="bg-gray-800 p-4 rounded-lg shadow-xl">
-                <h2 class="text-xl mb-4">البث المباشر (Live View):</h2>
-                <div id="status" class="text-sm text-yellow-400 mb-2">في انتظار بدء المهمة...</div>
-                <div id="streamContainer" class="relative w-full h-80 bg-black rounded flex items-center justify-center overflow-hidden border border-gray-700">
-                    <p id="placeholderText" class="text-gray-500">سيظهر البث هنا عند التشغيل</p>
-                    <iframe id="liveFrame" class="hidden w-full h-full border-none"></iframe>
+            <div class="bg-slate-800 p-6 rounded-2xl shadow-2xl border border-slate-700 flex flex-col">
+                <h2 class="text-lg font-bold mb-4 flex items-center">
+                    <span class="w-3 h-3 bg-red-500 animate-pulse rounded-full ml-2"></span> العرض المباشر
+                </h2>
+                <div id="streamBox" class="flex-grow bg-slate-950 rounded-xl overflow-hidden relative border border-slate-700 min-h-[400px]">
+                    <div id="loader" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 z-10 hidden">
+                        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+                        <p class="text-slate-400">جاري تشغيل السيرفر السحابي...</p>
+                    </div>
+                    <p id="placeholder" class="absolute inset-0 flex items-center justify-center text-slate-600 text-center p-10">
+                        اضغط تشغيل لمشاهدة المتصفح وهو يعمل في السحابة
+                    </p>
+                    <iframe id="liveIframe" class="w-full h-full hidden" src=""></iframe>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // إعدادات Supabase (ستحصل عليها عند إنشاء حساب مجاني)
-        const supabase = supabase.createClient('YOUR_SUPABASE_URL', 'YOUR_SUPABASE_ANON_KEY');
-        const userId = "user_" + Math.random().toString(36).substr(2, 9);
+        // --- إعدادات المفاتيح ---
+        const SB_URL = "https://pfoywmhbzjbtriiqctyx.supabase.co";
+        const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmb3l3bWhiempidHJpaXFjdHl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNDAzNDcsImV4cCI6MjA4NTYxNjM0N30.cxrEpKAuuIvcakrLbYbaKo4mTuPSmBBaQvJz_pjg4hY";
+        const supabase = supabase.createClient(SB_URL, SB_KEY);
+        const uID = "user_" + Math.random().toString(36).substring(7);
 
-        async function runAutomation() {
+        async function startJob() {
             const code = document.getElementById('codeEditor').value;
-            const btn = document.getElementById('runBtn');
-            const status = document.getElementById('status');
+            document.getElementById('loader').classList.remove('hidden');
+            document.getElementById('runBtn').disabled = true;
 
-            btn.disabled = true;
-            status.innerText = "⏳ جاري إرسال الطلب إلى المحرك...";
-
-            // 1. إرسال الكود إلى Netlify Function
-            const response = await fetch('/.netlify/functions/run-job', {
+            // استدعاء Netlify Function
+            await fetch('/.netlify/functions/run-job', {
                 method: 'POST',
-                body: JSON.stringify({ script_code: code, user_id: userId })
+                body: JSON.stringify({ script: code, userId: uID })
             });
 
-            if (response.ok) {
-                status.innerText = "🚀 تم بدء المحرك! جاري تحضير البث (قد يستغرق 30 ثانية)...";
-                listenForStream();
-            }
-        }
-
-        function listenForStream() {
-            // 2. الاستماع لقاعدة البيانات: عندما يضع GitHub رابط Ngrok، سنفتحه فوراً
-            supabase
-                .channel('public:jobs')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'jobs', filter: `user_id=eq.${userId}` }, 
+            // الاستماع للرابط في Supabase
+            const channel = supabase
+                .channel('jobs')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'jobs', filter: `user_id=eq.${uID}` }, 
                 payload => {
-                    const streamUrl = payload.new.live_url;
-                    document.getElementById('placeholderText').classList.add('hidden');
-                    const iframe = document.getElementById('liveFrame');
-                    iframe.src = streamUrl;
+                    document.getElementById('loader').classList.add('hidden');
+                    document.getElementById('placeholder').classList.add('hidden');
+                    const iframe = document.getElementById('liveIframe');
+                    iframe.src = payload.new.live_url;
                     iframe.classList.remove('hidden');
-                    document.getElementById('status').innerText = "🔴 بث مباشر الآن";
-                })
-                .subscribe();
+                }).subscribe();
         }
     </script>
 </body>
